@@ -8,17 +8,23 @@ export default function OrgSetup() {
   const [departments, setDepartments] = useState([]);
   const [categories, setCategories] = useState([]);
   const [employees, setEmployees] = useState([]);
+  const [showAddEmpModal, setShowAddEmpModal] = useState(false);
+  const [newEmp, setNewEmp] = useState({ fullName: '', email: '', password: '', role: 'Employee', department: '' });
+
+  const [showDeptModal, setShowDeptModal] = useState(false);
+  const [newDept, setNewDept] = useState({ name: '', description: '' });
+  const [editingDeptId, setEditingDeptId] = useState(null);
 
   useEffect(() => {
     const fetchOrgData = async () => {
       try {
-        const depRes = await fetch('http://localhost:5000/api/org/departments');
+        const depRes = await fetch('/api/org/departments');
         setDepartments(await depRes.json());
         
-        const catRes = await fetch('http://localhost:5000/api/org/categories');
+        const catRes = await fetch('/api/org/categories');
         setCategories(await catRes.json());
         
-        const empRes = await fetch('http://localhost:5000/api/org/employees');
+        const empRes = await fetch('/api/org/employees');
         setEmployees(await empRes.json());
       } catch (err) {
         console.error('Failed to fetch org data', err);
@@ -27,9 +33,39 @@ export default function OrgSetup() {
     fetchOrgData();
   }, [token]);
 
+  const handleSaveDepartment = async (e) => {
+    e.preventDefault();
+    try {
+      const url = editingDeptId ? `/api/org/departments/${editingDeptId}` : '/api/org/departments';
+      const method = editingDeptId ? 'PUT' : 'POST';
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newDept)
+      });
+      if (res.ok) {
+        fetchOrgData();
+        setShowDeptModal(false);
+        setNewDept({ name: '', description: '' });
+        setEditingDeptId(null);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleDeleteDepartment = async (id) => {
+    try {
+      const res = await fetch(`/api/org/departments/${id}`, { method: 'DELETE' });
+      if (res.ok) fetchOrgData();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   const promoteToRole = async (empId, newRole) => {
     try {
-      const res = await fetch(`http://localhost:5000/api/org/employees/${empId}/role`, {
+      const res = await fetch(`/api/org/employees/${empId}/role`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ role: newRole })
@@ -37,6 +73,28 @@ export default function OrgSetup() {
       if (res.ok) {
         const updated = await res.json();
         setEmployees(employees.map(e => e._id === updated._id ? updated : e));
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const handleAddEmployee = async (e) => {
+    e.preventDefault();
+    try {
+      const res = await fetch('/api/org/employees', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newEmp)
+      });
+      if (res.ok) {
+        const added = await res.json();
+        setEmployees([...employees, added]);
+        setShowAddEmpModal(false);
+        setNewEmp({ fullName: '', email: '', password: '', role: 'Employee', department: '' });
+      } else {
+        const errorData = await res.json();
+        alert('Error: ' + errorData.message);
       }
     } catch (error) {
       console.error(error);
@@ -93,7 +151,7 @@ export default function OrgSetup() {
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
                 <h3 style={{ fontSize: '1.25rem' }}>Department Management</h3>
-                <button className="btn btn-primary">+ New Department</button>
+                <button onClick={() => { setEditingDeptId(null); setNewDept({ name: '', description: '' }); setShowDeptModal(true); }} className="btn btn-primary">+ New Department</button>
               </div>
               <table style={tableStyle}>
                 <thead>
@@ -113,7 +171,10 @@ export default function OrgSetup() {
                         <span style={badgeStyle('var(--success)')}>Active</span>
                       </td>
                       <td style={tdStyle}>
-                        <button className="btn btn-secondary" style={{ padding: '0.25rem 0.75rem' }}>Edit</button>
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                          <button onClick={() => { setEditingDeptId(dept._id); setNewDept({ name: dept.name, description: dept.description }); setShowDeptModal(true); }} className="btn btn-secondary" style={{ padding: '0.25rem 0.75rem' }}>Edit</button>
+                          <button onClick={() => handleDeleteDepartment(dept._id)} className="btn btn-secondary" style={{ padding: '0.25rem 0.75rem', color: 'var(--danger)' }}>Delete</button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -126,23 +187,23 @@ export default function OrgSetup() {
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
                 <h3 style={{ fontSize: '1.25rem' }}>Asset Categories</h3>
-                <button className="btn btn-primary">+ New Category</button>
+                <button onClick={() => alert('Categories are dynamically gathered from your registered assets. Register a new asset with a new category name to add one!')} className="btn btn-primary">+ New Category</button>
               </div>
               <table style={tableStyle}>
                 <thead>
                   <tr>
                     <th style={thStyle}>Category Name</th>
                     <th style={thStyle}>Description</th>
-                    <th style={thStyle}>Actions</th>
+                    <th style={thStyle}>Status</th>
                   </tr>
                 </thead>
                 <tbody>
                   {categories.map((cat, i) => (
                     <tr key={i} style={{ borderBottom: '1px solid var(--border-color)' }}>
                       <td style={tdStyle}>{cat}</td>
-                      <td style={tdStyle}>Auto-generated category</td>
+                      <td style={tdStyle}>Auto-generated from Asset Directory</td>
                       <td style={tdStyle}>
-                        <button className="btn btn-secondary" style={{ padding: '0.25rem 0.75rem' }}>Edit</button>
+                        <span style={badgeStyle('var(--success)')}>Active</span>
                       </td>
                     </tr>
                   ))}
@@ -155,6 +216,7 @@ export default function OrgSetup() {
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
                 <h3 style={{ fontSize: '1.25rem' }}>Employee Directory</h3>
+                <button onClick={() => setShowAddEmpModal(true)} className="btn btn-primary">+ Add Employee</button>
               </div>
               <table style={tableStyle}>
                 <thead>
@@ -191,6 +253,69 @@ export default function OrgSetup() {
           )}
         </div>
       </div>
+
+      {/* Add Employee Modal */}
+      {showAddEmpModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 100 }}>
+          <div className="glass-panel" style={{ width: '90%', maxWidth: '500px', padding: '2rem', position: 'relative' }}>
+            <button 
+              onClick={() => setShowAddEmpModal(false)}
+              style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}
+            >
+              <X size={24} />
+            </button>
+            <h2 className="heading" style={{ fontSize: '1.5rem', marginBottom: '1.5rem' }}>Add New Employee</h2>
+            <form onSubmit={handleAddEmployee} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.5rem' }}>Full Name</label>
+                <input type="text" className="input-field" value={newEmp.fullName} onChange={e => setNewEmp({...newEmp, fullName: e.target.value})} required />
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.5rem' }}>Email Address</label>
+                <input type="email" className="input-field" value={newEmp.email} onChange={e => setNewEmp({...newEmp, email: e.target.value})} required />
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.5rem' }}>Temporary Password</label>
+                <input type="password" className="input-field" value={newEmp.password} onChange={e => setNewEmp({...newEmp, password: e.target.value})} required />
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.5rem' }}>Role</label>
+                <select className="input-field" value={newEmp.role} onChange={e => setNewEmp({...newEmp, role: e.target.value})}>
+                  <option>Employee</option>
+                  <option>Department Head</option>
+                  <option>Asset Manager</option>
+                </select>
+              </div>
+              <button type="submit" className="btn btn-primary" style={{ marginTop: '1rem' }}>Create Account</button>
+            </form>
+          </div>
+        </div>
+      )}
+      {/* Department Modal */}
+      {showDeptModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 100 }}>
+          <div className="glass-panel" style={{ width: '90%', maxWidth: '500px', padding: '2rem', position: 'relative' }}>
+            <button 
+              onClick={() => setShowDeptModal(false)}
+              style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}
+            >
+              <X size={24} />
+            </button>
+            <h2 className="heading" style={{ fontSize: '1.5rem', marginBottom: '1.5rem' }}>{editingDeptId ? 'Edit Department' : 'New Department'}</h2>
+            <form onSubmit={handleSaveDepartment} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.5rem' }}>Department Name</label>
+                <input type="text" className="input-field" value={newDept.name} onChange={e => setNewDept({...newDept, name: e.target.value})} required />
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.5rem' }}>Description</label>
+                <input type="text" className="input-field" value={newDept.description} onChange={e => setNewDept({...newDept, description: e.target.value})} />
+              </div>
+              <button type="submit" className="btn btn-primary" style={{ marginTop: '1rem' }}>Save</button>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

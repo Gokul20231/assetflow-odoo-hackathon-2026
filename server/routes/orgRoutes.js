@@ -25,6 +25,24 @@ router.post('/departments', async (req, res) => {
   }
 });
 
+router.put('/departments/:id', async (req, res) => {
+  try {
+    const dep = await Department.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    res.json(dep);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
+router.delete('/departments/:id', async (req, res) => {
+  try {
+    await Department.findByIdAndDelete(req.params.id);
+    res.json({ message: 'Department deleted' });
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
 // EMPLOYEES (DIRECTORY)
 router.get('/employees', async (req, res) => {
   try {
@@ -32,6 +50,26 @@ router.get('/employees', async (req, res) => {
     res.json(users);
   } catch (error) {
     res.status(500).json({ message: error.message });
+  }
+});
+
+router.post('/employees', async (req, res) => {
+  try {
+    const { fullName, email, password, role, department } = req.body;
+    const userExists = await User.findOne({ email });
+    if (userExists) {
+      return res.status(400).json({ message: 'User already exists' });
+    }
+    const user = await User.create({
+      fullName,
+      email,
+      password,
+      role: role || 'Employee',
+      department
+    });
+    res.status(201).json({ _id: user._id, fullName, email, role, department });
+  } catch (error) {
+    res.status(400).json({ message: error.message });
   }
 });
 
