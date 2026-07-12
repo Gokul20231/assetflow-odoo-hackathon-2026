@@ -46,24 +46,18 @@ const styles = {
 };
 
 function LoginScreen() {
-  const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [fullName, setFullName] = useState('');
   const [error, setError] = useState('');
   
   const navigate = useNavigate();
-  const { login, signup } = useContext(AuthContext);
+  const { login } = useContext(AuthContext);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     try {
-      if (isLogin) {
-        await login(email, password);
-      } else {
-        await signup(fullName, email, password);
-      }
+      await login(email, password);
       navigate('/dashboard');
     } catch (err) {
       setError(err.message);
@@ -75,10 +69,10 @@ function LoginScreen() {
       <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
         <Box size={48} color="var(--primary-color)" style={{ marginBottom: '1rem' }} />
         <h2 className="heading" style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>
-          {isLogin ? 'Welcome back to AssetFlow' : 'Create an Account'}
+          Welcome back to AssetFlow
         </h2>
         <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
-          {isLogin ? 'Enter your credentials to access your dashboard' : 'Register to manage enterprise assets'}
+          Enter your credentials to access your dashboard
         </p>
       </div>
 
@@ -89,16 +83,6 @@ function LoginScreen() {
       )}
 
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-        {!isLogin && (
-          <div>
-            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem' }}>Full Name</label>
-            <div style={{ position: 'relative' }}>
-              <Users size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
-              <input type="text" className="input-field" placeholder="John Doe" style={{ paddingLeft: '2.5rem' }} value={fullName} onChange={e => setFullName(e.target.value)} required />
-            </div>
-          </div>
-        )}
-        
         <div>
           <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem' }}>Email Address</label>
           <div style={{ position: 'relative' }}>
@@ -116,26 +100,10 @@ function LoginScreen() {
         </div>
 
         <button type="submit" className="btn btn-primary" style={{ marginTop: '1rem', padding: '0.75rem', fontSize: '1rem' }}>
-          {isLogin ? (
-            <>
-              <LogIn size={18} style={{ marginRight: '0.5rem' }} />
-              Sign In
-            </>
-          ) : 'Sign Up'}
+          <LogIn size={18} style={{ marginRight: '0.5rem' }} />
+          Sign In
         </button>
       </form>
-
-      <div style={{ marginTop: '1.5rem', textAlign: 'center', fontSize: '0.875rem' }}>
-        <span style={{ color: 'var(--text-secondary)' }}>
-          {isLogin ? "Don't have an account? " : "Already have an account? "}
-        </span>
-        <button 
-          onClick={() => setIsLogin(!isLogin)}
-          style={{ background: 'none', border: 'none', color: 'var(--accent-color)', cursor: 'pointer', fontWeight: '500' }}
-        >
-          {isLogin ? 'Sign up' : 'Log in'}
-        </button>
-      </div>
     </div>
   );
 }
