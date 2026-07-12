@@ -6,13 +6,18 @@ export default function AssetDirectory() {
   const [searchTerm, setSearchTerm] = useState('');
   const [assets, setAssets] = useState([]);
   const [showRegisterModal, setShowRegisterModal] = useState(false);
-  const [newAsset, setNewAsset] = useState({ name: '', assetTag: '', category: 'Electronics', location: '' });
+  const [showViewModal, setShowViewModal] = useState(false);
+  const [showAllocateModal, setShowAllocateModal] = useState(false);
+  const [selectedAsset, setSelectedAsset] = useState(null);
+  
+  const [newAsset, setNewAsset] = useState({ name: '', assetTag: '', category: 'Electronics', location: '', status: 'Available' });
+  const [allocation, setAllocation] = useState({ allocatedToUser: '', expectedReturnDate: '' });
   
   const { token } = useContext(AuthContext);
 
   const fetchAssets = async () => {
     try {
-      const res = await fetch('http://localhost:5000/api/assets');
+      const res = await fetch('/api/assets');
       const data = await res.json();
       setAssets(data);
     } catch (err) {
@@ -27,7 +32,7 @@ export default function AssetDirectory() {
   const handleRegister = async (e) => {
     e.preventDefault();
     try {
-      const res = await fetch('http://localhost:5000/api/assets', {
+      const res = await fetch('/api/assets', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newAsset)
@@ -35,11 +40,45 @@ export default function AssetDirectory() {
       if (res.ok) {
         setShowRegisterModal(false);
         fetchAssets();
-        setNewAsset({ name: '', assetTag: '', category: 'Electronics', location: '' });
+        setNewAsset({ name: '', assetTag: '', category: 'Electronics', location: '', status: 'Available' });
       }
     } catch (err) {
       console.error(err);
     }
+  };
+
+  const handleDelete = async (id) => {
+    try {
+      const res = await fetch(`/api/assets/${id}`, { method: 'DELETE' });
+      if (res.ok) fetchAssets();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleAllocate = async (e) => {
+    e.preventDefault();
+    try {
+      const res = await fetch(`/api/assets/${selectedAsset._id}/allocate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(allocation)
+      });
+      if (res.ok) {
+        setShowAllocateModal(false);
+        setAllocation({ allocatedToUser: '', expectedReturnDate: '' });
+        fetchAssets();
+      } else {
+        const errorData = await res.json();
+        alert('Allocation failed: ' + errorData.message);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleTransfer = () => {
+    alert('Transfer requests are generated automatically when a currently allocated asset is re-allocated. (Hackathon MVP)');
   };
 
   const filteredAssets = assets.filter(a => 
@@ -98,12 +137,13 @@ export default function AssetDirectory() {
                 </td>
                 <td style={tdStyle}>
                   <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    <button className="btn btn-secondary" style={{ padding: '0.25rem 0.5rem' }}>View</button>
+                    <button onClick={() => { setSelectedAsset(asset); setShowViewModal(true); }} className="btn btn-secondary" style={{ padding: '0.25rem 0.5rem' }}>View</button>
                     {asset.status === 'Available' ? (
-                      <button className="btn btn-primary" style={{ padding: '0.25rem 0.5rem', background: 'var(--success)' }}>Allocate</button>
-                    ) : asset.status === 'Allocated' ? (
-                      <button className="btn btn-secondary" style={{ padding: '0.25rem 0.5rem' }}><ArrowRightLeft size={14}/> Transfer</button>
-                    ) : null}
+                      <button onClick={() => { setSelectedAsset(asset); setShowAllocateModal(true); }} className="btn btn-primary" style={{ padding: '0.25rem 0.5rem', background: 'var(--success)' }}>Allocate</button>
+                    ) : (
+                      <button onClick={handleTransfer} className="btn btn-secondary" style={{ padding: '0.25rem 0.5rem' }}><ArrowRightLeft size={14}/> Transfer</button>
+                    )}
+                    <button onClick={() => handleDelete(asset._id)} className="btn btn-secondary" style={{ padding: '0.25rem 0.5rem', color: 'var(--danger)' }}>Delete</button>
                   </div>
                 </td>
               </tr>
@@ -144,6 +184,54 @@ export default function AssetDirectory() {
                 <input type="text" className="input-field" value={newAsset.location} onChange={e => setNewAsset({...newAsset, location: e.target.value})} required />
               </div>
               <button type="submit" className="btn btn-primary" style={{ marginTop: '1rem' }}>Save Asset</button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* View Modal */}
+      {showViewModal && selectedAsset && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 100 }}>
+          <div className="glass-panel" style={{ width: '90%', maxWidth: '500px', padding: '2rem', position: 'relative' }}>
+            <button 
+              onClick={() => setShowViewModal(false)}
+              style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}
+            >
+              <X size={24} />
+            </button>
+            <h2 className="heading" style={{ fontSize: '1.5rem', marginBottom: '1.5rem' }}>Asset Details</h2>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <p><strong>Name:</strong> {selectedAsset.name}</p>
+              <p><strong>Tag:</strong> {selectedAsset.assetTag}</p>
+              <p><strong>Category:</strong> {selectedAsset.category}</p>
+              <p><strong>Status:</strong> {selectedAsset.status}</p>
+              <p><strong>Location:</strong> {selectedAsset.location}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Allocate Modal */}
+      {showAllocateModal && selectedAsset && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 100 }}>
+          <div className="glass-panel" style={{ width: '90%', maxWidth: '500px', padding: '2rem', position: 'relative' }}>
+            <button 
+              onClick={() => setShowAllocateModal(false)}
+              style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}
+            >
+              <X size={24} />
+            </button>
+            <h2 className="heading" style={{ fontSize: '1.5rem', marginBottom: '1.5rem' }}>Allocate {selectedAsset.name}</h2>
+            <form onSubmit={handleAllocate} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.5rem' }}>Allocate To User (ID/Email)</label>
+                <input type="text" className="input-field" value={allocation.allocatedToUser} onChange={e => setAllocation({...allocation, allocatedToUser: e.target.value})} required />
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.5rem' }}>Expected Return Date</label>
+                <input type="date" className="input-field" value={allocation.expectedReturnDate} onChange={e => setAllocation({...allocation, expectedReturnDate: e.target.value})} />
+              </div>
+              <button type="submit" className="btn btn-primary" style={{ marginTop: '1rem', background: 'var(--success)' }}>Confirm Allocation</button>
             </form>
           </div>
         </div>
