@@ -63,6 +63,21 @@ router.get('/bookings/:resourceId', async (req, res) => {
   }
 });
 
+// @route DELETE /api/operations/bookings/:id
+// @desc Cancel a booking
+router.delete('/bookings/:id', async (req, res) => {
+  try {
+    const booking = await Booking.findById(req.params.id);
+    if (!booking) return res.status(404).json({ message: 'Booking not found' });
+    
+    booking.status = 'Cancelled';
+    await booking.save();
+    res.json({ message: 'Booking cancelled successfully' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 // =======================
 // MAINTENANCE ROUTES
 // =======================
