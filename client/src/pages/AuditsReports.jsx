@@ -30,6 +30,21 @@ export default function AuditsReports() {
     setIsGeneratingAI(false);
   };
 
+  const handleNewAudit = () => {
+    alert('A new Audit Cycle has been initiated. Notifications have been sent to Asset Managers. (Hackathon MVP)');
+  };
+
+  const exportCSV = () => {
+    const csvContent = "data:text/csv;charset=utf-8,ID,Asset,Status,Date\n1,AF-0001,Verified,2026-07-15\n2,AF-0003,Discrepancy,2026-07-15";
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", "audit_report.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div style={{ maxWidth: '1000px', margin: '0 auto', width: '100%' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem' }}>
@@ -65,8 +80,8 @@ export default function AuditsReports() {
           {activeTab === 'audits' && (
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
-                <h3 style={{ fontSize: '1.25rem' }}>Asset Verification Cycles</h3>
-                <button className="btn btn-primary">+ New Audit Cycle</button>
+                <h3 style={{ fontSize: '1.25rem' }}>Active Audit Cycles</h3>
+                <button onClick={handleNewAudit} className="btn btn-primary">+ New Audit Cycle</button>
               </div>
               <table style={tableStyle}>
                 <thead>
