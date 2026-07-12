@@ -123,7 +123,8 @@ const seedDB = async () => {
       asset: createdAssets[2]._id, // ThinkPad
       issueDescription: 'Battery dies after 20 minutes off charger. Needs replacement.',
       priority: 'High',
-      status: 'Pending'
+      status: 'Pending',
+      requestedBy: user2._id
     });
 
     // Resolved maintenance for Projector
@@ -132,6 +133,7 @@ const seedDB = async () => {
       issueDescription: 'Bulb burned out during presentation.',
       priority: 'Medium',
       status: 'Resolved',
+      requestedBy: user3._id,
       resolutionNotes: 'Replaced bulb with spare unit. Tested successfully.',
       resolvedDate: new Date()
     });
